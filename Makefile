@@ -1,5 +1,5 @@
 #KDIR := /lib/modules/$(shell uname -r)/build
-KDIR := /home/schischi/dev/vm/amd64/rootfs/lib/modules/3.18.1/build
+KDIR := /home/schischi/dev/vm/amd64/rootfs/lib/modules/3.19.0+/build
 PWD := $(shell pwd)
 LIB_SLRK := $(PWD)/lib
 KTESTS := $(PWD)/tests/kernel

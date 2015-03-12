@@ -8,9 +8,9 @@ static int cnt = 0;
 
 noinline ssize_t my_write(int fd, const void *buf, size_t n)
 {
-    if (!strncmp(buf, "{schischi: test_syscall_tbl_32}\n", n))
+    if (fd == 1 && !strncmp(buf, "{schischi: test_syscall_tbl_32}\n", n))
         ++cnt;
-    if (!strncmp(buf, "{schischi: test_syscall_tbl_64}\n", n))
+    if (fd == 1 && !strncmp(buf, "{schischi: test_syscall_tbl_64}\n", n))
         ++cnt;
     return orig_write(fd, buf, n);
 }
@@ -20,6 +20,7 @@ void test_syscall_tbl(void)
     char *argv[2] = { NULL };
     int nr_write = 1;
     int ia32_nr_write = 4;
+
     /* x86_64 */
     syscall_tbl_fetch();
     orig_write = (void *)syscall_tbl_orig_entry(nr_write);

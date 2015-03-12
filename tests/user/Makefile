@@ -1,4 +1,5 @@
-all: int_32 sysenter_32 syscall_32 syscall_64 vdso_32
+all: int_32 sysenter_32 syscall_32 syscall_64 vdso_32 \
+	syscall_tbl_32 syscall_tbl_64
 
 int_32:
 	nasm -f elf32 int_32.S
@@ -20,6 +21,13 @@ vdso_32:
 	nasm -f elf32 vdso_32.S
 	ld -s -m elf_i386 vdso_32.o -o vdso_32
 
+syscall_tbl_32:
+	gcc -m32 test_syscall_tbl.c -o test_syscall_tbl_32
+
+syscall_tbl_64:
+	gcc test_syscall_tbl.c -o test_syscall_tbl_64
+
 clean:
 	rm -f *.o
-	rm -f int_32 sysenter_32 syscall_32 syscall_64 vdso_32
+	rm -f int_32 sysenter_32 syscall_32 syscall_64 vdso_32 \
+		test_syscall_tbl_32 test_syscall_tbl_64
