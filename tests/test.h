@@ -3,7 +3,6 @@
 
 # include <linux/list.h>
 
-# define USER_TESTS "/home/schischi/dev/slrk/tests/user/"
 # define USER_ELF_PATH "/sys/kernel/debug/slrk/"
 
 # define EXPORT_USER_ELF(Name)                   \
