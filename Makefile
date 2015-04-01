@@ -11,9 +11,9 @@ slrk:
 slrk_clean:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(LIB_SLRK) clean
 
-tests: tests_user tests_kernel
+tests: tests_kernel
 
-tests_kernel: slrk
+tests_kernel: slrk tests_user
 	$(MAKE) -C $(KDIR) M=$(KTESTS)
 
 tests_kernel_clean:

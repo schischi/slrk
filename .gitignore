@@ -5,10 +5,10 @@
 *.symvers
 *.order
 .tmp_versions
-tests/user/int_32
-tests/user/syscall_32
-tests/user/syscall_64
-tests/user/sysenter_32
-tests/user/test_syscall_tbl_32
-tests/user/test_syscall_tbl_64
-tests/user/vdso_32
+tests/user/int80_user
+tests/user/syscall_32_user
+tests/user/syscall_64_user
+tests/user/sysenter_32_user
+tests/user/test_syscall_tbl_32_user
+tests/user/test_syscall_tbl_64_user
+tests/user/vdso_32_user

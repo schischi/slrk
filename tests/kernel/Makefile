@@ -1,9 +1,12 @@
 obj-m := slrk_tests.o
 slrk_tests-objs := ../../lib/lib_slrk.o  \
 	module.o                             \
-	idt.o                                \
+	int80.o                              \
 	inline_hooking.o                     \
 	syscall_tbl.o                        \
 	sysenter.o                           \
-	userland.o
-EXTRA_CFLAGS := -I$(src)/../../include
+	userland.o                           \
+	test.o
+	#idt.o
+ccflags-y := -I$(src)/../../include
+ldflags-y := -T$(src)/tests.lds

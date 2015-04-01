@@ -1,5 +1,6 @@
 #include "slrk.h"
 #include "assert.h"
+#include "test.h"
 
 static struct in_hook foo_hk;
 static volatile int cnt;
@@ -36,7 +37,7 @@ static void test_inline_hook(const char *name)
     assert(cnt == 1 && ret == 1, "inline hook with %s disabled", name);
 }
 
-void test_inline_hooking(void)
+int inline_hooking_test_run(void)
 {
     inline_hook_init((unsigned long)foo, (unsigned long)bar, REL_JMP, &foo_hk);
     test_inline_hook("rel_jmp");
@@ -46,4 +47,13 @@ void test_inline_hooking(void)
     test_inline_hook("push_ret");
     inline_hook_init((unsigned long)foo, (unsigned long)bar, RIP_REL, &foo_hk);
     test_inline_hook("rip_rel");
+    return 0;
 }
+
+struct unit_test inline_hooking_test = {
+    .name = "inline hooking",
+    .n = 12,
+    .run = inline_hooking_test_run,
+};
+
+test_init(inline_hooking_test);

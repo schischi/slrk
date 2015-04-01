@@ -3,12 +3,23 @@
 
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/debugfs.h>
+#include <linux/kallsyms.h>
+#include <linux/mm.h>
+#include <linux/slab.h>
+#include <asm/uaccess.h>
+#include "test.h"
 
 static int __init rootkit_init_module(void)
 {
     /* Init rootkit */
     idt_init();
     init_symbols();
+
+    init_unit_tests();
+    run_unit_tests();
+    return 0;
 
     /* Run some tests */
     test_inline_hooking();
@@ -21,6 +32,7 @@ static int __init rootkit_init_module(void)
 
 static void __exit rootkit_cleanup_module(void)
 {
+    cleanup_unit_tests();
     /* Restore the changed entries or the whole table */
     //idt_restore();
     //syscall_tbl_restore();
@@ -31,3 +43,5 @@ static void __exit rootkit_cleanup_module(void)
 module_init(rootkit_init_module);
 module_exit(rootkit_cleanup_module);
 MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Adrien Schildknecht <adrien+dev@schischi.me>");
+MODULE_DESCRIPTION("TODO");
