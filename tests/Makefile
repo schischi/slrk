@@ -1,5 +1,5 @@
 obj-m := slrk_tests.o
-slrk_tests-objs := ../lib/lib_slrk.o  \
+slrk_tests-objs := ../core/lib_slrk.o  \
 	module.o                             \
 	int80.o                              \
 	inline_hooking.o                     \

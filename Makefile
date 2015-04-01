@@ -1,14 +1,14 @@
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
-LIB_SLRK := $(PWD)/lib
+CORE_SLRK := $(PWD)/core
 KTESTS := $(PWD)/tests/
 UTESTS := $(PWD)/tests/user
 
 slrk:
-	$(MAKE) -C $(KDIR) SUBDIRS=$(LIB_SLRK)
+	$(MAKE) -C $(KDIR) SUBDIRS=$(CORE_SLRK)
 
 slrk_clean:
-	$(MAKE) -C $(KDIR) SUBDIRS=$(LIB_SLRK) clean
+	$(MAKE) -C $(KDIR) SUBDIRS=$(CORE_SLRK) clean
 
 tests: tests_kernel
 
@@ -26,5 +26,5 @@ tests_user_clean:
 
 clean: tests_user_clean tests_kernel_clean slrk_clean
 
-.PHONY: lib
+.PHONY: core
 .PHONY: tests
