@@ -4,45 +4,51 @@
 #include "test.h"
 #include <linux/kernel.h>
 
-idt_create_hook(0x80);
-
 static int cnt = 0;
-static int cnt2 = 0;
 
-noinline void pre_foo(struct pt_regs *regs)
-{
-    ++cnt;
-}
-
-noinline void post_foo(struct pt_regs *regs)
-{
-    ++cnt2;
-}
-
-void test_idt_hijacking(void)
-{
-    char *argv[2] = { NULL, NULL };
-
-    idt_hook_cfg(0x80, (unsigned long)pre_foo, (unsigned long)post_foo);
-
-    /* Completly change the table */
-    idt_substitute_table();
-    idt_hook_enable(0x80);
-    cnt = cnt2 = 0;
-    argv[0] = "/root/rk/int_32";
-    user_land_exec(argv);
-    assert(cnt != 0, "IDT entry 0x80 pre executed (table changed)");
-    assert(cnt2 != 0, "IDT entry 0x80 post executed (table changed)");
-    idt_restore_table();
-}
-
-#if 0
-struct unit_test sysenter_test = {
-    .name = "sysenter",
-    .n = 4,
-    .run = sysenter_test_run,
-    .elf = USER_ELF(sysenter_32_user),
+static char *argv[2] = {
+    USER_ELF_PATH"int80_user", NULL
 };
 
-test_init(sysenter_test);
-#endif
+
+static noinline int pre_foo(struct pt_regs *regs)
+{
+    ++cnt;
+    return 0;
+}
+
+static noinline int pre_foo2(struct pt_regs *regs)
+{
+    ++cnt;
+    return 2;
+}
+
+int idt_test_run(void)
+{
+    idt_set_pre_hook(0x80, pre_foo);
+    cnt = 0;
+    idt_hook_enable(0x80);
+    user_land_exec(argv);
+    assert(cnt != 0, "IDT @0x80 pre hook, with orig");
+    cnt = 0;
+    idt_hook_disable(0x80);
+    user_land_exec(argv);
+    assert(cnt == 0, "IDT @0x80 restored");
+
+    idt_set_pre_hook(0x6, pre_foo2);
+    cnt = 0;
+    idt_hook_enable(0x6);
+    asm("ud2\n");
+    assert(cnt != 0, "IDT @0x6 pre hook, skip orig");
+    idt_hook_disable(0x6);
+
+    return 0;
+}
+
+struct unit_test idt_test = {
+    .name = "idt",
+    .n = 3,
+    .run = idt_test_run,
+};
+
+test_init(idt_test);

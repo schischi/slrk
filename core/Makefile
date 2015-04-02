@@ -4,5 +4,7 @@ lib_slrk-objs := syscall_tbl.o   \
 	hook_inline.o                \
 	symbol.o                     \
 	idt.o                        \
-	sysenter.o
+	idt_hdlrs.o                  \
+	sysenter.o                   \
+	int80.o
 EXTRA_CFLAGS := -I$(src)/../include

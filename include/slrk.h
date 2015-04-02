@@ -5,6 +5,7 @@ struct pt_regs;
 
 # include "hook_inline.h"
 # include "idt.h"
+# include "int80.h"
 # include "log.h"
 # include "memory.h"
 # include "symbol.h"

@@ -56,4 +56,4 @@ struct unit_test inline_hooking_test = {
     .run = inline_hooking_test_run,
 };
 
-test_init(inline_hooking_test);
+//test_init(inline_hooking_test);
