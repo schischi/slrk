@@ -66,7 +66,7 @@ void run_unit_tests(void)
     struct unit_test *it;
 
     list_for_each_entry(it, &tests, list) {
-        pr_log("==> Testing %s\n", it->name);
+        pr_log("==> Testing "COLOR_BLUE"%s"COLOR_RESET"\n", it->name);
         if (it->run)
             it->run();
     }
