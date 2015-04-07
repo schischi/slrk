@@ -2,7 +2,7 @@ obj-m := slrk_tests.o
 slrk_tests-objs := ../core/lib_slrk.o    \
 	module.o                             \
 	inline_hooking.o                     \
-	syscall_tbl.o                        \
+	syscall_tbl_32.o                     \
 	sysenter.o                           \
 	userland.o                           \
 	test.o                               \

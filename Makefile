@@ -9,6 +9,7 @@ slrk:
 
 slrk_clean:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(CORE_SLRK) clean
+	rm -f core/syscall_nr.c
 
 tests: tests_kernel
 

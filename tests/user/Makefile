@@ -22,12 +22,13 @@ vdso_32:
 	ld -s -m elf_i386 vdso_32.o -o vdso_32_user
 
 syscall_tbl_32:
-	gcc -m32 test_syscall_tbl.c -o test_syscall_tbl_32_user
+	nasm -f elf32 syscall_tbl_32.S
+	ld -s -m elf_i386 syscall_tbl_32.o -o syscall_tbl_32_user
 
 syscall_tbl_64:
-	gcc test_syscall_tbl.c -o test_syscall_tbl_64_user
+	gcc syscall_tbl.c -o syscall_tbl_64_user
 
 clean:
 	rm -f *.o
 	rm -f int80_user sysenter_32_user syscall_32_user syscall_64_user \
-		vdso_32_user test_syscall_tbl_32_user test_syscall_tbl_64_user
+		vdso_32_user syscall_tbl_32_user syscall_tbl_64_user

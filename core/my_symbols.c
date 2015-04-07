@@ -50,10 +50,3 @@
             .end       = DEFAULT,
         },
 },
-{
-    .name = "filldir",
-    .fct  = NULL,
-    .asm_pattern = {
-        .type      = E_UNUSED,
-    },
-},

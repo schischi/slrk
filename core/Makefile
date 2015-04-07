@@ -6,5 +6,10 @@ lib_slrk-objs := syscall_tbl.o   \
 	idt.o                        \
 	idt_hdlrs.o                  \
 	sysenter.o                   \
-	int80.o
+	int80.o                      \
+	syscall_nr.o
 EXTRA_CFLAGS := -I$(src)/../include
+
+$(obj)/syscall_nr.c:
+	$(src)/../scripts/gen_syscall_tbl.sh $(shell pwd) $(obj)/syscall_nr.c
+
