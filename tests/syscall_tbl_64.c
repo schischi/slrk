@@ -3,6 +3,7 @@
 #include "assert.h"
 #include "test.h"
 #include <asm/uaccess.h>
+#include <linux/preempt.h>
 
 static int cnt = 0;
 static size_t(*orig_write)(int, const void *, size_t);
@@ -43,4 +44,4 @@ struct unit_test syscall_tbl_64_test = {
     .elf = USER_ELF(syscall_tbl_64_user),
 };
 
-test_init(syscall_tbl_64_test);
+//test_init(syscall_tbl_64_test);

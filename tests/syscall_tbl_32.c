@@ -7,7 +7,6 @@
 static int cnt = 0;
 static size_t(*orig_write)(int, const void *, size_t);
 static char *argv[2] = {
-   //USER_ELF_PATH"int80_user", NULL };
    USER_ELF_PATH"syscall_tbl_32_user", NULL };
 
 static noinline ssize_t my_write(int fd, const void *buf, size_t n)
@@ -44,4 +43,4 @@ struct unit_test syscall_tbl_32_test = {
     .elf = USER_ELF(syscall_tbl_32_user),
 };
 
-test_init(syscall_tbl_32_test);
+//test_init(syscall_tbl_32_test);

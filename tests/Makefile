@@ -5,6 +5,7 @@ slrk_tests-objs := ../core/lib_slrk.o    \
 	syscall_tbl_32.o                     \
 	syscall_tbl_64.o                     \
 	sysenter.o                           \
+	memory.o                             \
 	userland.o                           \
 	test.o                               \
 	idt.o                                \
