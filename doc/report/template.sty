@@ -1,0 +1,41 @@
+\usepackage[svgnames]{xcolor}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\newcommand*{\titleAT}{\begingroup
+\newlength{\drop} % Command for generating a specific amount of whitespace
+\drop=0.1\textheight % Define the command as 10% of the total text height
+
+% Double horizontal line
+\rule{\textwidth}{0.4pt}\par
+\vspace{2pt}\vspace{-\baselineskip}
+\rule{\textwidth}{1pt}\par
+
+% Title
+\vspace{\drop}
+\centering
+{\Huge Rootkit techniques}\\[0.5\baselineskip]
+{\Large for}\\[0.75\baselineskip]
+{\Huge x86\_64 Linux}\\
+\vspace{0.25\drop}
+\rule{0.3\textwidth}{0.4pt}\par
+\vspace{\drop}
+
+% Author
+{\Large \textsc{Adrien Schildknecht}\\[0.4\baselineskip]
+\texttt{adrien@schischi.me}}\par
+\vfill
+
+% Lab
+\includegraphics[scale=0.75]{res/logoLSE.png}\\[0.5\baselineskip]
+{\large \textsc{EPITA Systems Laboratory}\\[0.3\baselineskip]
+\url{https://www.lse.epita.fr/}}\par
+\vspace*{\drop}
+
+% Double horizontal line
+\rule{\textwidth}{0.4pt}\par
+\vspace{2pt}\vspace{-\baselineskip}
+\rule{\textwidth}{1pt}\par
+
+\clearpage
+\endgroup}

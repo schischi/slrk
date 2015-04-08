@@ -1,0 +1,54 @@
+\documentclass{article}
+\usepackage{cite}
+\usepackage{template}
+
+\begin{document}
+\pagestyle{empty}
+\titleAT
+\tableofcontents
+
+\section{Introduction}
+
+\section{Bypassing the memory protections}
+\subsection{PTE}
+\subsection{Write Protect flag}
+
+\section{Changing the execution flow}
+\subsection{Inline hooking}
+\subsubsection{Relative jmp}
+\subsubsection{Push ret 32bit}
+\subsubsection{Push ret 64bit}
+\subsubsection{RIP relative jmp}
+\subsubsection{int 0x3}
+
+\subsection{Pointer subterfuge}
+\subsubsection{Syscall table}
+\subsubsection{ia32 syscall table}
+
+\subsection{IDT hooking}
+
+\subsection{Syscall hooking}
+\subsubsection{int 0x80}
+\subsubsection{sysenter/sysexit}
+\subsubsection{syscall/sysret}
+
+\subsection{Debug registers}
+
+\section{Cover channel}
+\subsection{Common methods}
+% ioctl, netlink, fs (proc, debug…)
+\subsection{Invalid opcode (ud2)}
+
+\section{Common rootkit features}
+\subsection{Process hiding}
+\subsection{File hiding}
+\subsection{Keylogger}
+\subsection{Privilege escalation}
+\subsection{Network sniffing}
+\subsection{Socket hiding}
+\subsection{Packet hiding}
+~\cite{Test}
+
+\bibliography{ref}{}
+\bibliographystyle{plain}
+\end{document}
