@@ -8,18 +8,17 @@
 \tableofcontents
 
 \section{Introduction}
+\input{intro}
+
+\section{Symbols}
+\input{symbols}
 
 \section{Bypassing the memory protections}
-\subsection{PTE}
-\subsection{Write Protect flag}
+\input{mem}
 
 \section{Changing the execution flow}
 \subsection{Inline hooking}
-\subsubsection{Relative jmp}
-\subsubsection{Push ret 32bit}
-\subsubsection{Push ret 64bit}
-\subsubsection{RIP relative jmp}
-\subsubsection{int 0x3}
+\input{inline_hooking}
 
 \subsection{Pointer subterfuge}
 \subsubsection{Syscall table}
@@ -28,13 +27,24 @@
 \subsection{IDT hooking}
 
 \subsection{Syscall hooking}
+% ret to userland, can't <pre, orig, post>
+% rewrite a handler is painful and we don't want to remove some linux feature
+% handled in the original handler (ptrace, …)
+% Need to find a way to call the original handler and make it return to our
+% post handler.
 \subsubsection{int 0x80}
 \subsubsection{sysenter/sysexit}
 \subsubsection{syscall/sysret}
 
 \subsection{Debug registers}
 
-\section{Cover channel}
+\subsection{Linux debugging functions}
+\subsubsection{Ftrace}
+\subsubsection{Kprobe}
+\subsubsection{Live patching}
+\subsubsection{Syscall hooking}
+
+\section{Covert channel}
 \subsection{Common methods}
 % ioctl, netlink, fs (proc, debug…)
 \subsection{Invalid opcode (ud2)}
@@ -47,8 +57,10 @@
 \subsection{Network sniffing}
 \subsection{Socket hiding}
 \subsection{Packet hiding}
-~\cite{Test}
 
+\section{Conclusion}
+
+~\cite{Test}
 \bibliography{ref}{}
 \bibliographystyle{plain}
 \end{document}

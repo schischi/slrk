@@ -1,0 +1,25 @@
+Slrk is a project I started to learn more about how Linux and x86_64 works,
+it is not intended to implement undetectable rootkit techniques but rather
+explore the possibility we have to modify Linux behaviour.
+
+Slrk is not a functional rootkit, but rather a library that gather techniques
+and proofs of concept related to rootkit theory.
+
+The main goal of this project is to find ways to hook the kernel by tricking
+some parts of the kernel (mostly the interrupts procedures).
+Some techniques presented in this document are experimental and may contain
+a lot of bugs or races.
+The implementation of the various methods dig into low-level aspects of
+x86_64 such as the IDT, GDT, debug registers, exceptions…
+The interesting part of this project is that if you want to modify the
+behaviour of a linux's sub-system, you first need to understand it.
+
+The project also contains a test suites, which is a kernel module that use
+the lib slrk to validate the new features and avoid regressions.
+Coding such a module is also a good exercice to learn linux driver programming,
+the tests suit uses common used API (module, debugfs, usermod…) to run the
+various tests.
+
+At last, a rootkit example is provided to illustrate how to use the lib to
+implement rootkits. The example rootkit handle different common tasks such
+as hiding code, sockets and files or even act as a keylogger.
