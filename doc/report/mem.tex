@@ -1,2 +1,68 @@
-\subsection{PTE}
+In many situations you want your module to rewrite some parts of the running
+kernel, this include things like:
+\begin{itemize}
+  \item code: patching the code allow us to modify the behavior of a function;
+  \item data: modifying the content of a variable, or even a pointer;
+\end{itemize}
+The base protection of the memory is permissions, this mechanisms provide a
+set of per page flags that restrict the available operations on this page.
+In order to implements certain techniques, we need to change data in
+write-protected pages.
+
 \subsection{Write Protect flag}
+The first method is to modify the CPU's control register by setting the
+WP flags (16th bit) to zero which disable the write protections.
+With this protection disabled we can write anywhere in the memory without being
+annoyed by the MPU. This approch disable the protection globally in the kernel.
+\cite{wp_safe}
+
+\begin{lstlisting}[frame=single]
+#define CR0_WP 0x00010000 // Write Protect Bit (CR0:16)
+
+static inline unsigned long read_cr0(void) {
+    unsigned long val;
+    asm volatile("mov %%cr0,%0\n" : "=r" (val), "=m");
+    return val;
+}
+
+static inline void write_cr0(unsigned long val) {
+    asm volatile("mov %0,%%cr0\n" : : "r" (val), "m");
+}
+
+static void disable_wp(unsigned long addr) {
+    preempt_disable();
+    barrier();
+    write_cr0(read_cr0() & ~CR0_WP);
+}
+
+static void enable_wp(unsigned long addr) {
+    write_cr0(read_cr0() | CR0_WP);
+    barrier();
+    preempt_enable();
+}
+\end{lstlisting}
+
+\subsection{Page Table Entry}
+\cite{kernel_memory}
+This method is not specifig to the x86 architecture since we directly modify
+Linux's structures that handle the pages. Unlike the previous method, we
+change the permissions for a single page and not globally.
+The principe is to retrieve the page of an address from the page tables and
+change the entry to allow writing.
+
+\begin{lstlisting}[frame=single]
+static void pte_set_rw(unsigned long addr) {
+    pte_t *pte;
+    unsigned int level;
+
+    /* retrieve the page where the address reside */
+    pte = lookup_address(addr, &level);
+    /* Add the write permission */
+    if (pte->pte &~ _PAGE_RW)
+        pte->pte |= _PAGE_RW;
+}
+\end{lstlisting}
+
+\subsection{Shadow page mapping}
+\cite{write_protected}
+\todo{Shadow page mapping}

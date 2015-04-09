@@ -1,6 +1,11 @@
 \documentclass{article}
-\usepackage{cite}
 \usepackage{template}
+\usepackage[
+    backend=biber]
+    {biblatex}
+\usepackage{todonotes}
+
+\addbibresource{ref.bib}
 
 \begin{document}
 \pagestyle{empty}
@@ -60,7 +65,6 @@
 
 \section{Conclusion}
 
-~\cite{Test}
-\bibliography{ref}{}
-\bibliographystyle{plain}
+\clearpage
+\printbibliography
 \end{document}
