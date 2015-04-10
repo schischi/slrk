@@ -1,6 +1,24 @@
 \usepackage[svgnames]{xcolor}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{tcolorbox}
+\usepackage{verbatim}
+\usepackage{framed}
+\usepackage[strict]{changepage}
+\usepackage[top=1.25in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+
+\renewcommand{\headrulewidth}{1pt}
+\fancyhead[C]{} 
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{Schischi Linux Rootkit}
+
+\renewcommand{\footrulewidth}{1pt}
+\fancyfoot[R]{\textbf{\thepage / \pageref{LastPage}}} 
+\fancyfoot[L]{}
+\fancyfoot[C]{}
 
 \newcommand*{\titleAT}{\begingroup
 \newlength{\drop} % Command for generating a specific amount of whitespace
@@ -55,6 +73,13 @@
   identifierstyle=\color{black},
   stringstyle=\color{orange},
 }
+\lstnewenvironment{ccode}[1][]%
+{
+   \noindent
+   \minipage{\linewidth} 
+   \vspace{0.5\baselineskip}
+   \lstset{style=customc,frame=single,#1}}
+{\endminipage}
 
 \lstdefinestyle{customasm}{
   belowcaptionskip=1\baselineskip,
@@ -64,5 +89,74 @@
   basicstyle=\footnotesize\ttfamily,
   commentstyle=\itshape\color{purple!40!black},
 }
+\lstnewenvironment{asmcode}[1][]%
+{
+   \noindent
+   \minipage{\linewidth} 
+   \vspace{0.5\baselineskip}
+   \lstset{style=customasm,frame=single,#1}}
+{\endminipage}
+
+\lstdefinestyle{customsh}{
+  belowcaptionskip=1\baselineskip,
+  frame=L,
+  xleftmargin=\parindent,
+  language=bash,
+  basicstyle=\footnotesize\ttfamily,
+  commentstyle=\itshape\color{purple!40!black},
+}
+\lstnewenvironment{bashcode}[1][]%
+{
+   \noindent
+   \minipage{\linewidth} 
+   \vspace{0.5\baselineskip}
+   \lstset{style=customsh,frame=single,#1}}
+{\endminipage}
 
 \lstset{escapechar=@,style=customc}
+\newcommand*{\cmd}[1]{\texttt{#1}}
+\newtcbox{\ubox}{nobeforeafter,
+                 colframe=gray,
+                 colback=gray!10!white,
+                 boxrule=0.5pt,
+                 arc=2pt,
+                 boxsep=0pt,
+                 left=2pt,
+                 right=2pt,
+                 top=2pt,
+                 bottom=2pt,
+                 tcbox
+                 raise base}
+
+\definecolor{formalshade}{rgb}{0.95,0.95,1}
+
+\newenvironment{formal}{%
+  \def\FrameCommand{%
+    \hspace{1pt}%
+    {\color{blue}\vrule width 2pt}%
+    {\color{formalshade}\vrule width 4pt}%
+    \colorbox{formalshade}%
+  }%
+  \MakeFramed{\advance\hsize-\width\FrameRestore}%
+  \noindent\hspace{-4.55pt}% disable indenting first paragraph
+  \begin{adjustwidth}{}{7pt}%
+  \vspace{2pt}\vspace{2pt}%
+}
+{%
+  \vspace{2pt}\end{adjustwidth}\endMakeFramed%
+}
+
+\newcommand*{\Quote}[2]{
+\begin{formal}
+    #1
+\end{formal}
+\vspace{-4mm}
+\hfill \textit{#2}
+\vspace{2mm}
+}
+
+\newcommand*{\SQuote}[1]{
+\begin{formal}
+    #1
+\end{formal}
+}

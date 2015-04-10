@@ -9,11 +9,30 @@ set of per page flags that restrict the available operations on this page.
 In order to implements certain techniques, we need to change data in
 write-protected pages.
 
+In order to understant the 3 presented methods, you have to know the basis of
+memory management with a x86 processor \cite{kernel_memory}.
+
 \subsection{Write Protect flag}
-The first method is to modify the CPU's control register by setting the
-WP flags (16th bit) to zero which disable the write protections.
-With this protection disabled we can write anywhere in the memory without being
-annoyed by the MPU. This approch disable the protection globally in the kernel.
+The first method is to directly use the feature of x86 CPU to disable the
+write protection. The control registers can change the general behavior of the
+CPU by setting or clearing a specific bit.
+The CR0 register has various flags, but the one that is interesting in our case
+is the \textit{Write Protect} flag.
+\Quote{
+Write Protect (bit 16 of CR0) - When set, inhibits supervisor-level procedures
+from writing into read-only pages; when clear, allows supervisor-level
+procedures to write into read-only pages (regardless of the  U/S bit setting;
+see Section 4.1.3 and Section 4.6). This flag facilitates implementation of the
+copy-on-write method of creating a new process (forking) used by operating
+systems such as UNIX.}{IA-32 Architectures Software Developer’s Manuals, 2-14 Vol. 3A}
+
+This mean that if we disable the write protection, the protection is disabled
+globally and let use write anywhere in the memory without being annoyed by
+the MPU.
+The drawback is that we must ensure that we do not break kernel's features that
+rely on it such as copy-on-write. \todo{Really used ?}
+Before each memory modification that require us to change the WP flag, we will
+disable interrupts and scheduling so write looks atomic on the CPU.
 \cite{wp_safe}
 
 \begin{lstlisting}[frame=single]
@@ -30,7 +49,7 @@ static inline void write_cr0(unsigned long val) {
 }
 
 static void disable_wp(unsigned long addr) {
-    preempt_disable();
+    local_irq_disable();
     barrier();
     write_cr0(read_cr0() & ~CR0_WP);
 }
@@ -38,17 +57,30 @@ static void disable_wp(unsigned long addr) {
 static void enable_wp(unsigned long addr) {
     write_cr0(read_cr0() | CR0_WP);
     barrier();
-    preempt_enable();
+    local_irq_enable();
 }
 \end{lstlisting}
 
 \subsection{Page Table Entry}
-\cite{kernel_memory}
-This method is not specifig to the x86 architecture since we directly modify
-Linux's structures that handle the pages. Unlike the previous method, we
-change the permissions for a single page and not globally.
-The principe is to retrieve the page of an address from the page tables and
-change the entry to allow writing.
+\todo{explain MMU}
+Paging introduces the benefit of page-level protection.
+Paging is achieved through the MMU, an unit that transform virtual addresses
+into physical addresses based on the current page table.
+The idea here is to directly modify the fields of page entry to change the
+permissions.
+A page table entry (PTE) is a 4-byte record that contain a serie of flags
+used by the MMU.\\
+\begin{figure}[h]
+  \center
+  \includegraphics[scale=0.5]{res/pte.png}
+  \caption{Paging-Structure Entry}
+\end{figure}
+
+The RW flag in this structure enforce write protection across the page it
+refers to. The idea is to simply flip this bit to 0 to disable the protection,
+write the modifications in the page and flip it back.
+Unlike the previous method, we change the permissions for a single page and
+not globally.
 
 \begin{lstlisting}[frame=single]
 static void pte_set_rw(unsigned long addr) {
@@ -57,12 +89,79 @@ static void pte_set_rw(unsigned long addr) {
 
     /* retrieve the page where the address reside */
     pte = lookup_address(addr, &level);
-    /* Add the write permission */
+    /* Remove the write protection */
     if (pte->pte &~ _PAGE_RW)
         pte->pte |= _PAGE_RW;
+}
+
+static void pte_set_ro(unsigned long addr) {
+    pte_t *pte;
+    unsigned int level;
+
+    /* retrieve the page where the address reside */
+    pte = lookup_address(addr, &level);
+    /* Set the page read-only */
+    pte->pte = pte->pte &~_PAGE_RW;
 }
 \end{lstlisting}
 
 \subsection{Shadow page mapping}
+This technique was originally used by Ksplice\cite{ksplice} to write into read-only regions
+inside the \cmd{stop\_machine} function that cannot use \cmd{vmalloc/vfree}.
+The idea is to create an other view of the pages we want to write into. This
+is possible thanks to the \cmd{vmap} function:
+\SQuote{
+vmap - map an array of pages into virtually contiguous space.
+}
+\vspace{-3mm}
+\begin{lstlisting}[frame=single]
+void *vmap (citestruct page ** pages,
+            unsigned int count,
+            unsigned long flags,
+            pgprot_t prot);
+\end{lstlisting}
+
+This function return a contiguous space (where our read-only data reside) but
+with our own permissions. We have created a different view of the datas, they
+can be seen as read-only through their original page table entry, but
+read-write through our mapping.
+
+\begin{ccode}
+static void *map_writable(void *addr, size_t len) {
+    int i;
+    void *vaddr;
+    struct page **pages;
+    int nr_pages = DIV_ROUND_UP(offset_in_page(addr) + len, PAGE_SIZE);
+    void *page_addr = (void *)((unsigned long)addr & PAGE_MASK);
+
+    /* Create and fill an array of the pages we want to map */
+    pages = kmalloc(nr_pages * sizeof(*pages), GFP_KERNEL);
+    if (pages == NULL)
+        return NULL;
+    for (i = 0; i < nr_pages; i++) {
+        if (__module_address((unsigned long)page_addr) == NULL) {
+            pages[i] = virt_to_page(page_addr);
+            WARN_ON(!PageReserved(pages[i]));
+        } else {
+            pages[i] = vmalloc_to_page(page_addr);
+        }
+        if (pages[i] == NULL) {
+            kfree(pages);
+            return NULL;
+        }
+        page_addr += PAGE_SIZE;
+    }
+
+    /* Map the array of pages into virtually contiguous space with the 
+     * PAGE_KERNEL permission (which is RW)
+     */
+    vaddr = vmap(pages, nr_pages, VM_MAP, PAGE_KERNEL);
+    kfree(pages);
+    if (vaddr == NULL)
+        return NULL;
+    return vaddr + offset_in_page(addr);
+}
+\end{ccode}
+
 \cite{write_protected}
 \todo{Shadow page mapping}

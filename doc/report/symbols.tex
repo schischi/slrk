@@ -1,3 +1,82 @@
+A symbol represent the address of either a function or a variable. Retrieving
+a symbol is the first step into modifying data.
+Depending on the configuration of your kernel, differents methods are available.
+
 \subsection{Kallsyms}
+Requier
+\ubox{CONFIG\_KALLSYMS}
+Kallsyms are dynamically exported by the kernel via \cmd{/proc/kallsyms }.
+You can simply \cmd{cat} this file to get all the symbols addresses:\\
+\begin{bashcode}
+$ cat /proc/kallsyms| grep " printk$"
+ffffffff81536ed7 T printk
+\end{bashcode}
+
 \subsection{System.map}
+System.map is also a list of symbols and their addresses. This file is
+generated with each kernel compile. This mean that a System.map file only works with the
+kernel that generated it.
+The file is often stored at: \texttt{/boot/System.map} or \texttt{/System.map}.
+
 \subsection{Patterns}
+Searching a symbol with a pattern is basically what the \cmd{grep} command
+does. In our case, we are dealing with opcode and numbers, but the principe
+remains the same: we iter through a section of code (or data) and look for
+a specific sequence of instructions (context) to extract the data we want.
+Since the problem is to search for a pattern within an array of byte, we can
+use the Knuth–Morris–Pratt algorithm to get a $\Theta(n)$ search.
+
+Iterating through the entire Linux image can be long and hazardous, so we need
+to shorten the range. An efficient way of doing this is to first retrieve the
+beginning and the end of each section of the linux image, so that we can just
+iter through the \ubox{.text} section if we search for function symbol.
+
+
+Let's take an example, the \ubox{syscall\_table} symbol which is an array of
+function pointer that refers to the syscalls (entry 4 will be the syscall
+number 4).
+We know that this symbol is being used in the syscall handler because it needs
+to call the appropriate function when a syscall is issued.
+The disassembly of the syscall handler is the following:\\
+\begin{bashcode}
+$ gdb -batch -ex 'file ./vmlinux' -ex 'disassemble system_call_fastpath'}
+Dump of assembler code for function system_call_fastpath:
+   0xffffffff81872040 <+0>: cmp    $0x142,%rax
+   0xffffffff81872046 <+6>: ja     0xffffffff81872057 <ret_from_sys_call>
+   0xffffffff81872048 <+8>: mov    %r10,%rcx
+   0xffffffff8187204b <+11>:    callq  *-0x7e5ffd40(,%rax,8)
+   0xffffffff81872052 <+18>:    mov    %rax,0x20(%rsp)
+End of assembler dump.
+\end{bashcode}
+
+The interesting part of this dump is \cmd{callq  *-0x7e5ffd40(,\%rax,8)}
+because it contains the address of the symbol we are looking for.
+To extract it, we create a pattern from the context of this line using the
+hexadecimal representation of the code. We need to skip everything related to
+addresses because it may varies.\\
+
+We obtain the following pattern:\\
+\begin{ccode}
+{
+    .name = "sys_call_table",
+        .asm_pattern = {
+            .pattern   = {                          // <system_call_fastpath>:
+                0x48, 0x3d, 0x3c, 0x01, 0x00, 0x00,         // cmp    $0x142,%rax
+                0x0f, 0x87, SKIP, SKIP, SKIP, SKIP,         // ja     <...>
+                0x4c, 0x89, 0xd1,                           // mov    %r10,%rcx
+                0xff, 0x14, 0xc5, SAVE, SAVE, SAVE, SAVE,   // callq  *0x0(,%rax,8)
+                0x48, 0x89, 0x44, 0x24, 0x20,               // mov    %rax,0x20(%rsp)
+                END,
+            },
+            .start     = _text,    // beginning of .text section
+            .end       = _etext,   // end of .text section
+        },
+},
+\end{ccode}%$
+
+The advantage of such a search is that we do not explicitly rely on particular
+Linux configuration like \ubox{CONFIG\_KALLSYMS} nor an external file. The
+drawback is that the pattern may change depending on the Linux version or the
+configuration. The kernel part that handle syscall is unlikely to change or
+generate different code due to some configuration so we can assume that this
+method works well for this kind of symbols.
