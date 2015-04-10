@@ -1,10 +1,15 @@
 A symbol represent the address of either a function or a variable. Retrieving
 a symbol is the first step into modifying data.
+A symbol is just a name associated to an address.
+Symbols are primarly designed for debugging purposes. Many distributions
+enable them because the kernel can print out symbolic crash or stack
+information.
 Depending on the configuration of your kernel, differents methods are available.
 
 \subsection{Kallsyms}
-Requier
-\ubox{CONFIG\_KALLSYMS}
+The Kconfig \ubox{CONFIG\_KALLSYMS} allows the symbols exported with the macros
+\cmd{EXPORT\_SYMBOL} and \cmd{EXPORT\_SYMBOL\_GPL} to be loaded into the kernel
+image.
 Kallsyms are dynamically exported by the kernel via \cmd{/proc/kallsyms }.
 You can simply \cmd{cat} this file to get all the symbols addresses:\\
 \begin{bashcode}
@@ -12,11 +17,31 @@ $ cat /proc/kallsyms| grep " printk$"
 ffffffff81536ed7 T printk
 \end{bashcode}
 
+When writing kernel code, you can use the function:\\
+\begin{ccode}
+/* Lookup the address for this symbol. Returns 0 if not found. */
+unsigned long kallsyms_lookup_name(const char *name);
+\end{ccode}
+
+This function is a simple way to retrieve an address but it depends on
+\ubox{CONFIG\_KALLSYMS} and not all symbols are exported. For example you
+can't retrieve the address of a global variable.
+
+If your kernel has been compiled with \ubox{CONFIG\_KALLSYMS\_ALL}, you can
+retrieve all the symbols of the kernel, but this option is not commonly
+activated because it takes a lot of additional space in the kernel image
+to store them.
+
 \subsection{System.map}
-System.map is also a list of symbols and their addresses. This file is
-generated with each kernel compile. This mean that a System.map file only works with the
-kernel that generated it.
+System.map is also a simple file thaht contains the list of symbols and their
+addresses. This file is generated with each kernel compile. This mean that a
+System.map file only works with the kernel that generated it.
 The file is often stored at: \texttt{/boot/System.map} or \texttt{/System.map}.
+\\
+\begin{bashcode}
+$ cat /boot/System.map | grep " printk$"
+ffffffff81536ed7 T printk
+\end{bashcode}
 
 \subsection{Patterns}
 Searching a symbol with a pattern is basically what the \cmd{grep} command

