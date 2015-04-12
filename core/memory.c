@@ -10,38 +10,39 @@
 #include <linux/preempt.h>
 #include <linux/slab.h>
 
-# define CR0_WP 0x00010000 
+# define CR0_WP 0x00010000
 
-static void disable_wp(unsigned long addr)
+void disable_write_protect(void)
 {
     write_cr0(read_cr0() & ~CR0_WP);
 }
 
-static void enable_wp(unsigned long addr)
+void enable_write_protect(void)
 {
     write_cr0(read_cr0() | CR0_WP);
 }
 
-static void pte_set_rw(unsigned long addr)
+void set_addr_rw(void *addr)
 {
     pte_t *pte;
     unsigned int level;
 
-    pte = lookup_address(addr, &level);
+    pte = lookup_address((unsigned long)addr, &level);
     if (pte->pte &~ _PAGE_RW)
         pte->pte |= _PAGE_RW;
 }
 
-static void pte_set_ro(unsigned long addr)
+void set_addr_ro(void *addr)
 {
     pte_t *pte;
     unsigned int level;
 
-    pte = lookup_address(addr, &level);
+    pte = lookup_address((unsigned long)addr, &level);
     pte->pte = pte->pte &~_PAGE_RW;
 }
 
-static void *map_writable(void *addr, size_t len)
+static void *foo;
+void *shadow_mapping(void *addr, size_t len, void **map_addr)
 {
     void *vaddr;
     int nr_pages = DIV_ROUND_UP(offset_in_page(addr) + len, PAGE_SIZE);
@@ -66,44 +67,15 @@ static void *map_writable(void *addr, size_t len)
         page_addr += PAGE_SIZE;
     }
     vaddr = vmap(pages, nr_pages, VM_MAP, PAGE_KERNEL);
+    *map_addr = vaddr;
     kfree(pages);
     if (vaddr == NULL)
         return NULL;
     return vaddr + offset_in_page(addr);
 }
 
-#if 0
-static void (*mem_rw)(unsigned long) = pte_set_rw;
-static void (*mem_restore)(unsigned long) = pte_set_ro;
-#else
-static void (*mem_rw)(unsigned long) = disable_wp;
-static void (*mem_restore)(unsigned long) = enable_wp;
-#endif
-
-void memory_prot_bypass(enum memory_prot_bypass_method m)
+void del_shadow_mapping(void *addr)
 {
-    if (m == MEM_CR) {
-        mem_rw = disable_wp;
-        mem_restore = enable_wp;
-    }
-    else if (m == MEM_PTE) {
-        mem_rw = pte_set_rw;
-        mem_restore = pte_set_ro;
-    }
+    vunmap(foo);
 }
 
-void set_addr_rw(void *addr)
-{
-    //preempt_disable();
-    local_irq_disable();
-    barrier();
-    mem_rw((unsigned long)addr);
-}
-
-void set_addr_ro(void *addr)
-{
-    mem_restore((unsigned long)addr);
-    barrier();
-    //preempt_enable();
-    local_irq_enable();
-}
