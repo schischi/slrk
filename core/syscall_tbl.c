@@ -9,6 +9,8 @@
 
 extern int syscall_nr[];
 
+static void *map_shadow;
+static void *map_shadow_32;
 static unsigned long *sys_call_table = NULL;
 static unsigned long *ia32_sys_call_table = NULL;
 
@@ -23,6 +25,8 @@ int syscall_tbl_fetch(enum syscall_mode m)
         if (sys_call_table)
             return 1;
         sys_call_table = (unsigned long *)symbol_retrieve("sys_call_table");
+        sys_call_table = shadow_mapping(sys_call_table, syscall_nr_max *
+                sizeof(unsigned long), &map_shadow);
         memcpy(sys_call_table_backup, sys_call_table, syscall_nr_max);
         ret |= !sys_call_table;
     }
@@ -31,6 +35,8 @@ int syscall_tbl_fetch(enum syscall_mode m)
             return 1;
         ia32_sys_call_table =
             (unsigned long *)symbol_retrieve("ia32_sys_call_table");
+        ia32_sys_call_table = shadow_mapping(ia32_sys_call_table,
+                syscall_nr_max * sizeof(unsigned long), &map_shadow_32);
         memcpy(ia32_sys_call_table_backup, ia32_sys_call_table, syscall_nr_max);
         ret |= !ia32_sys_call_table;
     }
@@ -74,13 +80,13 @@ void syscall_tbl_restore(int n, enum syscall_mode m)
     if (m & x86_64) {
         set_addr_rw(sys_call_table);
         sys_call_table[n] = sys_call_table_backup[n];
-        set_addr_ro(sys_call_table);
+        del_shadow_mapping(map_shadow);
     }
     if (m & x86) {
         set_addr_rw(ia32_sys_call_table);
         ia32_sys_call_table[syscall_nr[n]] =
             ia32_sys_call_table_backup[syscall_nr[n]];
-        set_addr_ro(ia32_sys_call_table);
+        del_shadow_mapping(map_shadow_32);
     }
 }
 

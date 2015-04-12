@@ -43,4 +43,4 @@ struct unit_test syscall_tbl_32_test = {
     .elf = USER_ELF(syscall_tbl_32_user),
 };
 
-//test_init(syscall_tbl_32_test);
+test_init(syscall_tbl_32_test);
