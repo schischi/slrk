@@ -96,14 +96,14 @@ void inline_hook_init(unsigned long addr, unsigned long hook, enum payload_type 
 
 void inline_hook_enable(struct in_hook *hk)
 {
-    //set_addr_rw(hk->fct);
+    disable_write_protect();
     memcpy((void*)hk->fct, hk->payload, hk->len);
-    //set_addr_ro(hk->fct);
+    enable_write_protect();
 }
 
 void inline_hook_disable(struct in_hook *hk)
 {
-    //set_addr_rw(hk->fct);
+    disable_write_protect();
     memcpy((void*)hk->fct, hk->orig_code, hk->len);
-    //set_addr_ro(hk->fct);
+    enable_write_protect();
 }
