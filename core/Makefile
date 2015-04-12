@@ -7,6 +7,7 @@ lib_slrk-objs := syscall_tbl.o   \
 	idt_hdlrs.o                  \
 	sysenter.o                   \
 	int80.o                      \
+	debug_reg.o                  \
 	syscall_nr.o
 EXTRA_CFLAGS := -I$(src)/../include
 

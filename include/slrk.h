@@ -11,5 +11,6 @@ struct pt_regs;
 # include "symbol.h"
 # include "syscall_tbl.h"
 # include "sysenter.h"
+# include "debug_reg.h"
 
 #endif /* !SLRK_H */
