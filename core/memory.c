@@ -41,6 +41,37 @@ static void pte_set_ro(unsigned long addr)
     pte->pte = pte->pte &~_PAGE_RW;
 }
 
+static void *map_writable(void *addr, size_t len)
+{
+    void *vaddr;
+    int nr_pages = DIV_ROUND_UP(offset_in_page(addr) + len, PAGE_SIZE);
+    struct page **pages = kmalloc(nr_pages * sizeof(*pages), GFP_KERNEL);
+    void *page_addr = (void *)((unsigned long)addr & PAGE_MASK);
+    int i;
+
+    if (pages == NULL)
+        return NULL;
+
+    for (i = 0; i < nr_pages; i++) {
+        if (__module_address((unsigned long)page_addr) == NULL) {
+            pages[i] = virt_to_page(page_addr);
+            WARN_ON(!PageReserved(pages[i]));
+        } else {
+            pages[i] = vmalloc_to_page(page_addr);
+        }
+        if (pages[i] == NULL) {
+            kfree(pages);
+            return NULL;
+        }
+        page_addr += PAGE_SIZE;
+    }
+    vaddr = vmap(pages, nr_pages, VM_MAP, PAGE_KERNEL);
+    kfree(pages);
+    if (vaddr == NULL)
+        return NULL;
+    return vaddr + offset_in_page(addr);
+}
+
 #if 0
 static void (*mem_rw)(unsigned long) = pte_set_rw;
 static void (*mem_restore)(unsigned long) = pte_set_ro;
@@ -63,7 +94,8 @@ void memory_prot_bypass(enum memory_prot_bypass_method m)
 
 void set_addr_rw(void *addr)
 {
-    preempt_disable();
+    //preempt_disable();
+    local_irq_disable();
     barrier();
     mem_rw((unsigned long)addr);
 }
@@ -72,5 +104,6 @@ void set_addr_ro(void *addr)
 {
     mem_restore((unsigned long)addr);
     barrier();
-    preempt_enable();
+    //preempt_enable();
+    local_irq_enable();
 }

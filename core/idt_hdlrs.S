@@ -1,60 +1,76 @@
-#define STRUCT_IDT_HOOK_SZ 32
+#include "asm_utils.S"
+
 .extern idt_hook
 
-.macro save_regs
-  push %rax
-  push %rdi
-  push %rsi
-  push %rdx
-  push %rcx
-  push %rax
-  push %r8
-  push %r9
-  push %r10
-  push %r11
-  push %rbx
-  push %rbp
-  push %r12
-  push %r13
-  push %r14
-  push %r15
-.endm
-
-.macro restore_regs
-  pop %r15
-  pop %r14
-  pop %r13
-  pop %r12
-  pop %rbp
-  pop %rbx
-  pop %r11
-  pop %r10
-  pop %r9
-  pop %r8
-  pop %rax
-  pop %rcx
-  pop %rdx
-  pop %rsi
-  pop %rdi
-  pop %rax
-.endm
+#define STRUCT_IDT_HOOK_SZ 32
+#define HAS_ERROR_CODE     (   \from == 0x08 \
+                            || \from == 0x0A \
+                            || \from == 0x0B \
+                            || \from == 0x0C \
+                            || \from == 0x0D \
+                            || \from == 0x0E \
+                            || \from == 0x11 \
+                            || \from == 0x1E)
 
 /* This macro generates a new generic handler for an IDT entry
  *   - save the registers
  *   - execute the pre-hook
  *   - restore the registers
- *   - if the pre-hook return a zero value the original handler is executed
- *   - otherwise if the value is positive we increment the return address
- *     with this value (useful to skip an opcode like ud2 or int $0x3)
+ *   - pre-hook return value:
+ *      = 0 -> push a fake exception frame that return in the post-hook
+ *      > 0 -> return from the handler (without executing the original one)
+ *             increment return eip by the ret value (useful to skip an
+ *             opcode like ud2 or int $0x3)
+ *      -1  -> execute the original handler without the post-hook
  *   - return from the interrupt
  */
 .macro gen_idt_hdlr from, to
+    cli
+    .if !HAS_ERROR_CODE
+        pushq $0x0
+    .endif
+    movq %rsp, %r8
+    movq 0x0(%rsp), %r9
     save_regs
-    callq *(idt_hook + STRUCT_IDT_HOOK_SZ * \from + 0)
-    test %rax, %rax
-    jnz idt_iret
+    movq %rsp, %rdi                         /* 1st arg: pt_regs  */
+    movq %r8, %rsi                          /* 2nd arg: err_code */
+    callq *(idt_hook \
+        + STRUCT_IDT_HOOK_SZ * \from + 0)
+    cmp $0, %eax
+    jg idt_iret    /* jmp if ret > 0 */
     restore_regs
-    jmp *(idt_hook + STRUCT_IDT_HOOK_SZ * \from + 8)
+    jl 2f          /* jmp if ret < 0 */
+
+    sub $0x28, %rsp                         /* fake cpu exception frame */
+    movq $0x18, 0x20(%rsp)                  /* SS                       */
+    movq %r8, 0x18(%rsp)                    /* RSP                      */
+    movq $0x0, 0x10(%rsp)                   /* EFLAGS                   */
+    movq $0x10, 0x8(%rsp)                   /* CS                       */
+    movq $1f, %r8
+    movq %r8, 0x0(%rsp)                     /* RIP                      */
+    .if HAS_ERROR_CODE
+        pushq %r9
+    .endif
+    jmp 3f
+    2:
+    .if !HAS_ERROR_CODE
+        add $0x8, %rsp   /* Pop error code */
+    .else
+        .space 4, 0x90
+    .endif
+    3:
+    jmp *(idt_hook \
+        + STRUCT_IDT_HOOK_SZ * \from + 8)
+
+    1:
+    popq %rsi                               /* Pop error code */
+    save_regs
+    movq %rsp, %rdi                         /* 1st arg: pt_regs  */
+    callq *(idt_hook \
+        + STRUCT_IDT_HOOK_SZ * \from + 16)
+    restore_regs
+    iretq
+
     .align 8, 0x90
     .if \to-\from
         gen_idt_hdlr "(\from+1)", \to
@@ -77,6 +93,7 @@ idt_hook_sz:
 
 idt_iret:
     /* Increment the return address with the result of the pre-hook */
-    add %rax, 0x80(%rsp)
+    add %rax, 0x88(%rsp)
     restore_regs
+    add $0x8, %rsp   /* Pop error code */
     iretq
