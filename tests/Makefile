@@ -8,7 +8,6 @@ slrk_tests-objs := ../core/lib_slrk.o    \
 	memory.o                             \
 	userland.o                           \
 	test.o                               \
-	idt.o                                \
-	int80.o
+	idt.o
 ccflags-y := -I$(src)/../include -DUSER_TESTS=\"$(src)/user/\"
 ldflags-y := -T$(src)/tests.lds

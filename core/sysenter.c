@@ -76,8 +76,9 @@ asm (
     "iretq\n"
 );
 
-noinline int fake_pf_hdlr(struct pt_regs *regs)
+noinline int fake_pf_hdlr(struct pt_regs *regs, int err)
 {
+    //TODO check error code
     asm volatile (
         "push %rax\n"
         "mov %cr2, %rax\n"
@@ -87,7 +88,7 @@ noinline int fake_pf_hdlr(struct pt_regs *regs)
         "jmp sysenter_fake_ret\n"
         "out:\n"
     );
-    return 0;
+    return -1;
 }
 
 static void local_wrmsrl_sysenter_eip(void *data)
@@ -112,7 +113,7 @@ void sysenter_hook_enable(void)
         BUG_ON((*((unsigned long *)eip) & 0xffffff) != 0xf8010f);
         sysenter_orig_hdlr_no_swapgs = eip + 3;
     }
-    idt_set_pre_hook(0xE, fake_pf_hdlr);
+    idt_set_hook(0xE, fake_pf_hdlr, NULL);
     idt_hook_enable(0xE);
     on_each_cpu(local_wrmsrl_sysenter_eip, (void*)sysenter_fake_dispatcher, 1);
 }
