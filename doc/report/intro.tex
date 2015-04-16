@@ -1,6 +1,6 @@
-Slrk is a project I started to learn more about how Linux and x86\_64 works,
-it is not intended to implement undetectable rootkit techniques but rather
-explore the possibility we have to modify Linux behaviour.
+Slrk is a project I started to learn more about Linux and x86\_64.
+It is \textbf{not} intended to implement undetectable rootkit techniques but
+rather explore the possibility we have to modify Linux behaviour.
 
 Slrk is not a functional rootkit, but rather a library that gather techniques
 and proofs of concept related to rootkit theory.
@@ -13,6 +13,8 @@ The implementation of the various methods dig into low-level aspects of
 x86\_64 such as the IDT, GDT, debug registers, exceptions…
 The interesting part of this project is that if you want to modify the
 behaviour of a linux's sub-system, you first need to understand it.
+Even if only x86\_64 is supported by the project, it handles the 32bit
+emulation mode.
 
 The project also contains a test suites, which is a kernel module that use
 the lib slrk to validate the new features and avoid regressions.
@@ -29,5 +31,7 @@ If you want to fully understand how this project works you need to be familiar
 with x86 operating system programming (GDT, IDT, syscalls…). If you are not,
 you should read about it first:
 \begin{itemize}
-  \item Foo
+  \item http://littleosbook.github.io/
+  \item https://k.lse.epita.fr/
+  \item http://wiki.osdev.org/Main\_Page
 \end{itemize}

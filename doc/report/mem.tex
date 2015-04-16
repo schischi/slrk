@@ -106,10 +106,16 @@ static void pte_set_ro(unsigned long addr) {
 \end{lstlisting}
 
 \subsection{Shadow page mapping}
-This technique was originally used by Ksplice\cite{ksplice} to write into read-only regions
-inside the \cmd{stop\_machine} function that cannot use \cmd{vmalloc/vfree}.
-The idea is to create an other view of the pages we want to write into. This
-is possible thanks to the \cmd{vmap} function:
+This technique was originally used by Ksplice\cite{ksplice} to write into
+read-only regions inside the \cmd{stop\_machine} function that cannot use
+\cmd{vmalloc/vfree}.
+Memory is addressed through virtual mappings that point to a a specific
+physical page.
+The idea is to create an other view of the pages we want to write into.
+Indeed, it is possible to  create two different virtual mapping that point to
+the same physical paging. This trick let us have two different view of the same
+physical page and thus drop the write protection).
+This is possible thanks to the \cmd{vmap} function:
 \SQuote{
 vmap - map an array of pages into virtually contiguous space.
 }

@@ -14,12 +14,12 @@
 \usepackage{lastpage}
 
 \renewcommand{\headrulewidth}{1pt}
-\fancyhead[C]{} 
+\fancyhead[C]{}
 \fancyhead[L]{\leftmark}
 \fancyhead[R]{Schischi Linux Rootkit}
 
 \renewcommand{\footrulewidth}{1pt}
-\fancyfoot[R]{\textbf{\thepage / \pageref{LastPage}}} 
+\fancyfoot[R]{\textbf{\thepage / \pageref{LastPage}}}
 \fancyfoot[L]{}
 \fancyfoot[C]{}
 
@@ -98,6 +98,22 @@
    \minipage{\linewidth} 
    \vspace{0.5\baselineskip}
    \lstset{style=customasm,frame=single,#1}}
+{\endminipage}
+
+\lstdefinestyle{custompseudo}{
+  belowcaptionskip=1\baselineskip,
+  frame=L,
+  xleftmargin=\parindent,
+  backgroundcolor=\color{white},
+  basicstyle=\footnotesize\ttfamily,
+  commentstyle=\itshape\color{purple!40!black},
+}
+\lstnewenvironment{pseudocode}[1][]%
+{
+   \noindent
+   \minipage{\linewidth} 
+   \vspace{0.5\baselineskip}
+   \lstset{style=custompseudo,frame=single,#1}}
 {\endminipage}
 
 \lstdefinestyle{customsh}{
