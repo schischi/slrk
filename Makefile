@@ -1,4 +1,4 @@
-KDIR := /lib/modules/$(shell uname -r)/build
+KDIR ?= /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 CORE_SLRK := $(PWD)/core
 KTESTS := $(PWD)/tests/
