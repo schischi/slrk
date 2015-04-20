@@ -24,8 +24,8 @@ static int __init rootkit_init_module(void)
 
 static void __exit rootkit_cleanup_module(void)
 {
-    cleanup_unit_tests();
     idt_restore();
+    cleanup_unit_tests();
 }
 
 module_init(rootkit_init_module);

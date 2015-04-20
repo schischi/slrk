@@ -107,6 +107,8 @@ void idt_restore(void)
 {
     struct desc_ptr idtr;
 
+    if (!old_idt_table)
+        return;
     idtr.address = (unsigned long)old_idt_table;
     idtr.size = idt_size;
     on_each_cpu(local_load_idt, &idtr, 1);
