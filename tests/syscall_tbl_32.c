@@ -26,7 +26,7 @@ int syscall_tbl_32_run(void)
     user_land_exec(argv);
     assert(cnt != 0, "ia32_sys_call_table change entry");
 
-    syscall_tbl_restore(__NR_write, x86);
+    syscall_tbl_restore_all(x86);
     cnt = 0;
     user_land_exec(argv);
     assert(cnt == 0, "ia32_sys_call_table restored");
@@ -43,4 +43,4 @@ struct unit_test syscall_tbl_32_test = {
     .elf = USER_ELF(syscall_tbl_32_user),
 };
 
-test_init(syscall_tbl_32_test);
+//test_init(syscall_tbl_32_test);

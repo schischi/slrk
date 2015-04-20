@@ -27,7 +27,7 @@ int syscall_tbl_64_run(void)
     user_land_exec(argv);
     assert(cnt != 0, "sys_call_table change entry");
 
-    syscall_tbl_restore(__NR_write, x86_64);
+    syscall_tbl_restore_all(x86_64);
     cnt = 0;
     user_land_exec(argv);
     assert(cnt == 0, "sys_call_table restored");
@@ -44,4 +44,4 @@ struct unit_test syscall_tbl_64_test = {
     .elf = USER_ELF(syscall_tbl_64_user),
 };
 
-test_init(syscall_tbl_64_test);
+//test_init(syscall_tbl_64_test);
