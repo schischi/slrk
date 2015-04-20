@@ -8,14 +8,15 @@ static volatile const unsigned long var;
 
 int memory_protection_run(void)
 {
+    pteval_t pte;
     void *shadow_map_addr;
     unsigned long *shadow_addr;
+
     assert(var == 0, "const var is set to 0");
-#if 0
-    set_addr_rw((void *)&var);
+
+    pte = set_page_rw((void *)&var);
     *((int *)&var) = 13;
-    set_addr_ro((void *)&var);
-#endif
+    set_page_pte((void *)&var, pte);
     assert(var == 13, "Modify const var (pte)");
 
     enable_write_protect();

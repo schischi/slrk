@@ -1,3 +1,4 @@
+#include "log.h"
 #include "memory.h"
 #include "symbol.h"
 
@@ -5,7 +6,6 @@
 #include <linux/kernel.h>
 #include <linux/sched.h>
 #include <linux/kallsyms.h>
-#include <asm/cacheflush.h>
 #include <linux/semaphore.h>
 #include <linux/preempt.h>
 #include <linux/slab.h>
@@ -22,26 +22,36 @@ void enable_write_protect(void)
     write_cr0(read_cr0() | CR0_WP);
 }
 
-void set_addr_rw(void *addr)
+pteval_t set_page_rw(void *addr)
 {
+    pteval_t ret;
     pte_t *pte;
     unsigned int level;
 
     pte = lookup_address((unsigned long)addr, &level);
+    if (!pte)
+        pr_log("pte is null\n");
+    if (level != PG_LEVEL_4K)
+        pr_log("pte level != 4k\n");
+    ret = pte->pte;
     if (pte->pte &~ _PAGE_RW)
         pte->pte |= _PAGE_RW;
+    return ret;
 }
 
-void set_addr_ro(void *addr)
+void set_page_pte(void *addr, pteval_t p)
 {
     pte_t *pte;
     unsigned int level;
 
     pte = lookup_address((unsigned long)addr, &level);
-    pte->pte = pte->pte &~_PAGE_RW;
+    if (!pte)
+        pr_log("pte is null\n");
+    if (level != PG_LEVEL_4K)
+        pr_log("pte level != 4k\n");
+    pte->pte = p;
 }
 
-static void *foo;
 void *shadow_mapping(void *addr, size_t len, void **map_addr)
 {
     void *vaddr;
@@ -76,6 +86,6 @@ void *shadow_mapping(void *addr, size_t len, void **map_addr)
 
 void del_shadow_mapping(void *addr)
 {
-    vunmap(foo);
+    vunmap(addr);
 }
 
