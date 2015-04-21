@@ -47,7 +47,7 @@ asm (
     "movq $0x2b, 0xa0(%rsp)\n"  /* SS */
     /* Set an invalid esp */
     "movl $"__stringify(SYSENTER_MAGIC)", 12(%rbp)\n"
-    /* pt_regs */
+    /* slrk_regs */
     "mov %rsp, %rdi\n"
     /* Pre-hook ! */
     "call *sysenter_pre_hook\n"
@@ -76,7 +76,7 @@ asm (
     "iretq\n"
 );
 
-noinline int fake_pf_hdlr(struct pt_regs *regs, int err)
+noinline int fake_pf_hdlr(struct slrk_regs *regs, int err)
 {
     //TODO check error code
     asm volatile (

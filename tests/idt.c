@@ -12,24 +12,24 @@ static char *argv[2] = {
 };
 
 
-static noinline int pre_foo(struct pt_regs *regs)
+static noinline int pre_foo(struct slrk_regs *regs)
 {
     ++cnt;
-    return 0;
+    return -2; //execute orig and post
 }
 
-static noinline void post_foo(struct pt_regs *regs)
+static noinline void post_foo(struct slrk_regs *regs)
 {
     ++cnt2;
 }
 
-static noinline int pre_foo2(struct pt_regs *regs)
+static noinline int pre_foo2(struct slrk_regs *regs)
 {
     ++cnt;
-    return 2;
+    return 2; //return to saved_rip + 2
 }
 
-static noinline int pf_hook(struct pt_regs *regs, int err)
+static noinline int pf_hook(struct slrk_regs *regs, int err)
 {
     int cr2;
 

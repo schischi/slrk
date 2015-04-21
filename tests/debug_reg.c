@@ -12,7 +12,7 @@ static noinline void debug_reg_test_fct(void)
     ++fcnt;
 }
 
-static noinline void my_dr_hook(struct pt_regs *regs, long err)
+static noinline void my_dr_hook(struct slrk_regs *regs, long err)
 {
     ++hcnt;
 }
@@ -21,16 +21,16 @@ static int debug_reg_run(void)
 {
     int bp;
 
-    /* Inline hook do_debug */
+    /* IDT hook 0x1 */
     hcnt = fcnt = 0;
-    debug_register_hijack_handler(INLINE_HOOK);
-    bp = debug_register_add_bp(debug_reg_test_fct, my_dr_hook);
-    debug_register_enable_bp(bp);
+    dr_init(IDT_HOOK);
+    bp = dr_hook(debug_reg_test_fct, my_dr_hook);
+    dr_enable(bp);
     debug_reg_test_fct();
     assert(hcnt == 1 && fcnt == 1, "debug register with inline hook");
-    debug_register_del_bp(bp);
-    debug_register_unhijack_handler();
     /* Remove hook */
+    dr_delete(bp);
+    dr_cleanup();
     hcnt = fcnt = 0;
     debug_reg_test_fct();
     assert(hcnt == 0 && fcnt == 1, "debug register remove inline hook");

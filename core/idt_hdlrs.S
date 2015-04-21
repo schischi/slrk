@@ -32,14 +32,15 @@
     movq %rsp, %r8
     movq 0x0(%rsp), %r9
     save_regs
-    movq %rsp, %rdi                         /* 1st arg: pt_regs  */
+    movq %rsp, %rdi                         /* 1st arg: slrk_regs  */
     movq %r8, %rsi                          /* 2nd arg: err_code */
     callq *(idt_hook \
         + STRUCT_IDT_HOOK_SZ * \from + 0)
     cmp $0, %eax
-    jg idt_iret    /* jmp if ret > 0 */
+    jge idt_iret   /* jmp if ret >= 0 */
+    cmp $-1, %eax
     restore_regs
-    jl 2f          /* jmp if ret < 0 */
+    je 2f          /* jmp if ret = -1 */
 
     sub $0x28, %rsp                         /* fake cpu exception frame */
     movq $0x18, 0x20(%rsp)                  /* SS                       */
@@ -65,7 +66,7 @@
     1:
     popq %rsi                               /* Pop error code */
     save_regs
-    movq %rsp, %rdi                         /* 1st arg: pt_regs  */
+    movq %rsp, %rdi                         /* 1st arg: slrk_regs  */
     callq *(idt_hook \
         + STRUCT_IDT_HOOK_SZ * \from + 16)
     restore_regs

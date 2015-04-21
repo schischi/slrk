@@ -10,16 +10,16 @@ static char *argv[2] = {
     USER_ELF_PATH"sysenter_32_user", NULL
 };
 
-static noinline void sysenter_pre_hook(struct pt_regs *regs)
+static noinline void sysenter_pre_hook(struct slrk_regs *regs)
 {
-    if (regs->ax == 4)
+    if (regs->rax == 4)
         ++cnt;
 }
 
-static noinline void sysenter_post_hook(struct pt_regs *pre,
-        struct pt_regs *post)
+static noinline void sysenter_post_hook(struct slrk_regs *pre,
+        struct slrk_regs *post)
 {
-    if (pre->ax == 4 && post->ax == -9)
+    if (pre->rax == 4 && post->rax == -9)
         ++cnt2;
 }
 

