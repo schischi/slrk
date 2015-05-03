@@ -35,23 +35,23 @@ asm (
     "mov $stack_sysenter + ("SYSENTER_STACK_TOP"), %rsp\n"
     "add %gs:this_cpu_off, %rsp\n"
     /* Save registers on the stack */
-    "sub $0x28, %rsp\n"  /* Skip exception frame */
-    SAVE_REGS2
+    "sub $0x30, %rsp\n"  /* Skip exception frame */
+    SAVE_REGS
     /* Fill exception frame */
     "movl 12(%rbp), %eax\n"     /* RIP */
-    "movq %rax, 0x80(%rsp)\n"
-    "movq $0x23, 0x88(%rsp)\n"  /* CS */
-    "movq $0x0, 0x90(%rsp)\n"   /* RFLAGS */
+    "movq %rax, 0x88(%rsp)\n"
+    "movq $0x23, 0x90(%rsp)\n"  /* CS */
+    "movq $0x0, 0x98(%rsp)\n"   /* RFLAGS */
     "movl 0x0(%rbp), %eax\n"    /* RSP */
-    "movq %rax, 0x98(%rsp)\n"
-    "movq $0x2b, 0xa0(%rsp)\n"  /* SS */
+    "movq %rax, 0xa0(%rsp)\n"
+    "movq $0x2b, 0xa8(%rsp)\n"  /* SS */
     /* Set an invalid esp */
     "movl $"__stringify(SYSENTER_MAGIC)", 12(%rbp)\n"
     /* slrk_regs */
     "mov %rsp, %rdi\n"
     /* Pre-hook ! */
     "call *sysenter_pre_hook\n"
-    RESTORE_REGS2
+    RESTORE_REGS
     /* Call the original handler without swapgs */
     "jmp *sysenter_orig_hdlr_no_swapgs\n"
 );
@@ -62,13 +62,13 @@ asm (
     ".align 8, 0x90\n"
     "sysenter_fake_ret:\n"
     "swapgs\n"
-    SAVE_REGS2
+    SAVE_REGS
     "mov $stack_sysenter + ("SYSENTER_STACK_TOP"), %rdi\n"
     "add %gs:this_cpu_off, %rdi\n"
-    "sub $0x80, %rdi\n"
+    "sub $0x88, %rdi\n"
     "mov %rsp, %rsi\n"
     "call *sysenter_post_hook\n"
-    RESTORE_REGS2
+    RESTORE_REGS
     "mov $stack_sysenter + ("SYSENTER_STACK_TOP"), %rsp\n"
     "add %gs:this_cpu_off, %rsp\n"
     "swapgs\n"
@@ -88,7 +88,7 @@ noinline int fake_pf_hdlr(struct slrk_regs *regs, int err)
         "jmp sysenter_fake_ret\n"
         "out:\n"
     );
-    return -1;
+    return IRET_ORIG;
 }
 
 static void local_wrmsrl_sysenter_eip(void *data)

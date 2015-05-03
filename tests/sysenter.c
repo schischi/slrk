@@ -49,4 +49,4 @@ struct unit_test sysenter_test = {
     .elf = USER_ELF(sysenter_32_user),
 };
 
-test_init(sysenter_test);
+//test_init(sysenter_test);

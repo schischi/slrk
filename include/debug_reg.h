@@ -13,13 +13,19 @@ enum slrk_dr_mem_prot {
     DYN_VAL   = 2
 };
 
+enum slrk_dr_hiding {
+    HIDE_VOID     = 0,
+    HIDE_RET_0    = 1,
+    HIDE_SAVE_MOV = 2,
+};
+
 typedef void (*f_dr_hook)(struct slrk_regs *regs, long err);
 
 void dr_init(enum slrk_dr_hijacking m);
 void dr_cleanup(void);
 
 int dr_protect_mem(void *addr, size_t n, enum slrk_dr_mem_prot p);
-int dr_hook(void *addr, f_dr_hook hook);
+int dr_hook(void *addr, f_dr_hook hook, enum slrk_dr_hiding h);
 
 void dr_enable(int n);
 void dr_disable(int n);

@@ -32,8 +32,10 @@ static const struct file_operations my_fops = {
 
 static void export_user_elf(struct user_elf *elf)
 {
-    elf->file = debugfs_create_file_size(elf->name, 0555, dir, elf,
-            &my_fops, (size_t)*elf->size);
+    elf->file = debugfs_create_file(elf->name, 0555, dir, elf,
+            &my_fops);
+    //elf->file = debugfs_create_file_size(elf->name, 0555, dir, elf,
+    //        &my_fops, (size_t)*elf->size);
 }
 
 static void add_unit_test(struct unit_test *test)

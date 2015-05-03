@@ -9,6 +9,7 @@ lib_slrk-objs := syscall_tbl.o   \
 	debug_reg.o                  \
 	syscall_nr.o
 EXTRA_CFLAGS := -I$(src)/../include
+ldflags-y := -T $(src)/slrk.lds
 
 $(obj)/syscall_nr.c:
 	$(src)/../scripts/gen_syscall_tbl.sh $(shell pwd) $(obj)/syscall_nr.c

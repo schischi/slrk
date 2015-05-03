@@ -1,7 +1,7 @@
 #ifndef ROOTKIT_REGS_H
 # define ROOTKIT_REGS_H
 
-# define SAVE_REGS2                                  \
+# define SAVE_REGS                                  \
     "push      %rax       \n"                       \
     "push      %rdi       \n"                       \
     "push      %rsi       \n"                       \
@@ -17,9 +17,12 @@
     "push      %r12       \n"                       \
     "push      %r13       \n"                       \
     "push      %r14       \n"                       \
-    "push      %r15       \n"
+    "push      %r15       \n"                       \
+    "push      %rsp       \n"
 
-# define RESTORE_REGS2                               \
+
+# define RESTORE_REGS                               \
+    "pop       %r15       \n"                       \
     "pop       %r15       \n"                       \
     "pop       %r14       \n"                       \
     "pop       %r13       \n"                       \

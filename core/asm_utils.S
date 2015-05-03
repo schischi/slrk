@@ -15,9 +15,11 @@
   push %r13
   push %r14
   push %r15
+  push %rsp
 .endm
 
 .macro restore_regs
+  pop %r15
   pop %r15
   pop %r14
   pop %r13

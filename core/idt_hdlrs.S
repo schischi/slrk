@@ -17,11 +17,9 @@
  *   - execute the pre-hook
  *   - restore the registers
  *   - pre-hook return value:
- *      = 0 -> push a fake exception frame that return in the post-hook
- *      > 0 -> return from the handler (without executing the original one)
- *             increment return eip by the ret value (useful to skip an
- *             opcode like ud2 or int $0x3)
- *      -1  -> execute the original handler without the post-hook
+ *       = 0 -> return from the handler (without executing the original one)
+ *       > 0 -> execute the original handler without the post-hook
+ *       < 0 -> push a fake exception frame that return in the post-hook
  *   - return from the interrupt
  */
 .macro gen_idt_hdlr from, to
@@ -37,10 +35,9 @@
     callq *(idt_hook \
         + STRUCT_IDT_HOOK_SZ * \from + 0)
     cmp $0, %eax
-    jge idt_iret   /* jmp if ret >= 0 */
-    cmp $-1, %eax
     restore_regs
-    je 2f          /* jmp if ret = -1 */
+    je idt_iret    /* jmp if ret == 0 */
+    jg 2f          /* jmp if ret > 0 */
 
     sub $0x28, %rsp                         /* fake cpu exception frame */
     movq $0x18, 0x20(%rsp)                  /* SS                       */
@@ -93,8 +90,5 @@ idt_hook_sz:
     .quad (. - idt_fake_hdlrs) / 256
 
 idt_iret:
-    /* Increment the return address with the result of the pre-hook */
-    add %rax, 0x88(%rsp)
-    restore_regs
     add $0x8, %rsp   /* Pop error code */
     iretq

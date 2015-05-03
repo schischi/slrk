@@ -12,21 +12,22 @@ static char *argv[2] = {
 };
 
 
-static noinline int pre_foo(struct slrk_regs *regs)
+static noinline int pre_foo(struct slrk_regs *regs, int err)
 {
     ++cnt;
-    return -2; //execute orig and post
+    return IRET_ORIG_POST;
 }
 
-static noinline void post_foo(struct slrk_regs *regs)
+static noinline void post_foo(struct slrk_regs *regs, int err)
 {
     ++cnt2;
 }
 
-static noinline int pre_foo2(struct slrk_regs *regs)
+static noinline int pre_foo2(struct slrk_regs *regs, int err)
 {
     ++cnt;
-    return 2; //return to saved_rip + 2
+    regs->rip += 2;
+    return IRET;
 }
 
 static noinline int pf_hook(struct slrk_regs *regs, int err)
@@ -40,9 +41,10 @@ static noinline int pf_hook(struct slrk_regs *regs, int err)
     );
     if (cr2 == 0x42cafe42) {
         cnt = err & 0x1f;
-        return 7;
+        regs->rip += 7;
+        return IRET;
     }
-    return -1;
+    return IRET_ORIG;
 }
 
 int idt_test_run(void)

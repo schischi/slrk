@@ -5,6 +5,9 @@
 #include "memory.h"
 #include "hook_inline.h"
 
+extern asmlinkage void *__start_dr_code;
+extern asmlinkage void *__end_dr_code;
+
 static enum slrk_dr_hijacking hook_method;
 
 enum dr7_cond {
@@ -25,6 +28,8 @@ static struct hw_bp {
     void *addr;
     enum dr7_cond cond;
     enum dr7_len len;
+    enum slrk_dr_hiding hiding_method;
+    unsigned long fake_value;
     enum {
         ENABLED,
         DISABLED,
@@ -69,10 +74,9 @@ static struct hw_bp {
 
 #define REG_LIST X(0) X(1) X(2) X(3) X(6) X(7)
 
-#if 0
 static unsigned long dr_get(int n)
 {
-    unsigned long ret;
+    unsigned long ret = 0;
     switch (n) {
 #define X(N) case N: __dr_get(N, ret); break;
         REG_LIST
@@ -80,7 +84,6 @@ static unsigned long dr_get(int n)
     }
     return ret;
 }
-#endif
 
 static void dr_set(int n, unsigned long val)
 {
@@ -91,33 +94,89 @@ static void dr_set(int n, unsigned long val)
     }
 }
 
-#if 0
-static void skip_mov_instr(struct slrk_regs *regs)
+static void exec_opcode(int read, unsigned long *reg, unsigned int dr_number)
 {
-    /* mov %reg, %reg is 3 byte long */
-    regs->ip += 3;
-}
-#endif
+    //int dr_value;
 
-#include <linux/delay.h>
+    if (read) {
+        *reg = dr_get(dr_number);
+        pr_log("Read dr%u = 0x%lx\n", dr_number, *reg);
+    }
+    else { //write
+        unsigned long val = *reg;
+        if (dr_number == 7)
+            DR7_GENERAL_DETECT(val, 0);
+        dr_set(dr_number, val);
+        pr_log("Write dr%d = 0x%lx\n", dr_number, *reg);
+    }
+}
+
+static int decode_dr_move(struct slrk_regs *regs, unsigned int *dr_number,
+        unsigned long *value, int *read)
+{
+    unsigned long reg;
+    unsigned char *addr = (char *)regs->rip;
+    unsigned long *reg_ptr;
+    int base = addr[0] == 0x41;
+
+    pr_log("Opcode: 0x%.2x 0x%.2x 0x%.2x 0x%.2x (0x%p)\n",
+            addr[0], addr[1], addr[2], addr[3], addr);
+
+    *read = addr[base + 1] == 0x21;
+    *dr_number = ((addr[base + 2] - 0xc0) / 0x8);
+    reg = (addr[base + 2] - 0xc0) % 0x8;
+    switch (reg) {
+        case 0: reg_ptr = base ? &regs->r8  : &regs->rax; break;
+        case 1: reg_ptr = base ? &regs->r9  : &regs->rcx; break;
+        case 2: reg_ptr = base ? &regs->r10 : &regs->rdx; break;
+        case 3: reg_ptr = base ? &regs->r11 : &regs->rbx; break;
+        case 4: reg_ptr = base ? &regs->r12 : &regs->rsp; break;
+        case 5: reg_ptr = base ? &regs->r13 : &regs->rbp; break;
+        case 6: reg_ptr = base ? &regs->r14 : &regs->rsi; break;
+        case 7: reg_ptr = base ? &regs->r15 : &regs->rdi; break;
+    }
+    if (addr[base] != 0x0f) {
+        return 0;
+    }
+    exec_opcode(*read, reg_ptr, *dr_number);
+    //int self = (regs->rip >= (unsigned long)&__start_dr_code
+    //            && regs->rip <= (unsigned long)&__end_dr_code);
+    //pr_log("Instruction was %s dr%d (self=%d)\n",
+    //        *read ? "read" : "write",
+    //        *dr_number,
+    //        self);
+    return 3 + base;
+}
+
 static noinline int int1_pre_hook(struct slrk_regs *regs, int err)
 {
     int i;
-    unsigned long dr6;
+    int len;
+    unsigned long dr6, dr7;
 
     __dr_get(6, dr6);
+    __dr_get(7, dr7);
 
 #if 0
     /* An instruction R/W a debug register */
     if (DR6_BD(dr6)) {
-        DR6_CLEAR_BD(dr6);
+        unsigned int dr_number;
+        unsigned long value;
+        int read;
+        len = decode_dr_move(regs, &dr_number, &value, &read);
+        regs->rip += len;
+        pr_log("Inc 0x%lx, %u\n", regs->rip, len);
+            //regs->rflags |= X86_EFLAGS_RF;
+            regs->rflags &= ~X86_EFLAGS_TF;
+        DR6_CLEAR_BD(dr6); //remove ?
         __dr_set(6, dr6);
-        //skip_mov_instr(regs);
-        pr_log("RW dr!\n");
-        return 1; //skip original handler
+        DR7_GENERAL_DETECT(dr7, 1);
+        __dr_set(7, dr7);
+        return IRET;
     }
 #endif
 
+    /* A breakpoint has been triggered */
     for (i = 0; i < 4; ++i) {
         if (bp[i].state == ENABLED && DR6_BP(dr6, i)) {
             DR6_CLEAR_BP(dr6, i);
@@ -126,19 +185,26 @@ static noinline int int1_pre_hook(struct slrk_regs *regs, int err)
             if (bp[i].hdlr)
                 bp[i].hdlr(regs, err);
             __dr_set(6, dr6);
-            return 0; //iret, not original handler
+            DR7_GENERAL_DETECT(dr7, 0);
+            __dr_set(7, dr7);
+            return IRET;
         }
     }
-    return -1; //original handler, no post hook
+
+    DR7_GENERAL_DETECT(dr7, 0);
+    __dr_set(7, dr7);
+    return IRET_ORIG;
 }
 
-int dr_hook(void *addr, f_dr_hook hook)
+int dr_hook(void *addr, f_dr_hook hook, enum slrk_dr_hiding h)
 {
     int i;
 
     for (i = 0; i < 4; ++i) {
         if (bp[i].state == UNUSED) {
             bp[i].state = ENABLED;
+            bp[i].hiding_method = h;
+            bp[i].fake_value = 0;
             bp[i].addr = addr;
             bp[i].cond = DR7_COND_EXEC;
             bp[i].len = DR7_LEN_1;
@@ -151,6 +217,12 @@ int dr_hook(void *addr, f_dr_hook hook)
 
 int dr_protect_mem(void *addr, size_t n, enum slrk_dr_mem_prot p)
 {
+    switch (p) {
+        case CONST_VAL:
+            break;
+        case DYN_VAL:
+            break;
+    }
     return -1;
 }
 
@@ -172,13 +244,8 @@ void dr_enable(int n)
 
 void dr_disable(int n)
 {
-    unsigned long dr7;
     bp[n].state = DISABLED;
 
-    __dr_get(7, dr7);
-    DR7_GLOBAL_BP(dr7, n, 0);
-    DR7_LOCAL_BP(dr7, n, 0);
-    __dr_set(7, dr7);
     dr_set(n, 0);
 }
 
@@ -191,12 +258,8 @@ void dr_delete(int n)
 void dr_init(enum slrk_dr_hijacking m)
 {
     unsigned long dr7 = 0;
+    unsigned long zero = 0;
     hook_method = m;
-
-    DR7_LOCAL_EXACT(dr7, 1);
-    DR7_GLOBAL_EXACT(dr7, 1);
-    DR7_GENERAL_DETECT(dr7, 0);
-    __dr_set(7, dr7);
 
     switch (hook_method) {
         case INLINE_HOOK:
@@ -208,10 +271,23 @@ void dr_init(enum slrk_dr_hijacking m)
             //asm volatile ("int $1\n");
             break;
     }
+
+    DR7_LOCAL_EXACT(dr7, 1);
+    DR7_GLOBAL_EXACT(dr7, 1);
+    //FIXME: GD seems buggy under kvm... Disable it for the moment.
+    DR7_GENERAL_DETECT(dr7, 0);
+    __dr_set(0, zero);
+    __dr_set(1, zero);
+    __dr_set(2, zero);
+    __dr_set(3, zero);
+    __dr_set(7, dr7);
+
 }
 
 void dr_cleanup(void)
 {
+    unsigned long zero = 0;
+
     switch (hook_method) {
         case INLINE_HOOK:
             break;
@@ -219,4 +295,5 @@ void dr_cleanup(void)
             idt_hook_disable(0x1);
             break;
     }
+    __dr_set(7, zero);
 }
