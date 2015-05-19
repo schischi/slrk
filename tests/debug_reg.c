@@ -6,7 +6,6 @@
 
 static int hcnt = 0;
 static int fcnt = 0;
-static volatile unsigned long protected_var = 0;
 
 static noinline void debug_reg_test_fct(void)
 {
@@ -24,12 +23,13 @@ static noinline void my_dr_hook(struct slrk_regs *regs, long err)
 #define __dr_get(n, val) \
     asm volatile("mov %%db"#n", %0\n" : "=r"(val))
 
+#include <linux/delay.h>
 static int debug_reg_run(void)
 {
     int bp;
-    unsigned long bp_value = 42;
 
     dr_init(IDT_HOOK);
+
     /* Function hooking */
     hcnt = fcnt = 0;
     bp = dr_hook(debug_reg_test_fct, my_dr_hook, HIDE_VOID);
@@ -42,6 +42,20 @@ static int debug_reg_run(void)
     debug_reg_test_fct();
     assert(hcnt == 0 && fcnt == 1, "debug register cleanup (IDT)");
 
+#if 0
+    /* Memory protection */
+    unsigned long protected_var = 1;
+    bp = dr_protect_mem(&protected_var, 0x1, CONST_VAL);
+    *((volatile unsigned long*)&protected_var) = 37;
+    pr_log("Protected var is 0x%p\n", &protected_var);
+    dr_enable(bp);
+//    pr_log("Break at 0x%p\n", &&br);
+//    mdelay(3 * 1000);
+//br:
+    pr_log("===> %ld\n", *((volatile unsigned long*)&protected_var));
+    //assert(protected_var == 1, "dr protect address with const value");
+    dr_delete(bp);
+#endif
 
     dr_cleanup();
     return 0;

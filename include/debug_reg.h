@@ -31,4 +31,6 @@ void dr_enable(int n);
 void dr_disable(int n);
 void dr_delete(int n);
 
+void dr_print(void);
+
 #endif /* !ROOTKIT_DEBUG_REG_H */

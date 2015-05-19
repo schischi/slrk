@@ -93,4 +93,4 @@ struct unit_test idt_test = {
     .elf = USER_ELF(int80_user),
 };
 
-test_init(idt_test);
+//test_init(idt_test);
